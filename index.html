@@ -4,15 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>LCDPro</title>
-<meta name="description" content="Classic Casio Pocket-Mini electronic calculator. Authentic 8-digit blue LED display, brushed metal body, and pure retro calculation vibes.">
-<meta name="theme-color" content="#2c2c2c">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="LCDPro">
-<link rel="manifest" href="lcdpro.webmanifest">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
 :root{box-sizing:border-box;--top:max(92px,calc(env(safe-area-inset-top) + 80px));--pb:124px}
 *{box-sizing:inherit}
@@ -79,11 +70,6 @@ body{background:#1f7bff;display:grid;place-items:center;
 .bar button.wa{background:#25D366;border-color:#25D366;box-shadow:0 0 12px #25D36688;display:flex;align-items:center;justify-content:center;padding:7px 12px}
 .bar button.wa:hover{background:#1ebe5b}
 .hint{flex:1 0 100%;text-align:center;color:#f2f2f2;font-size:12px;min-height:1em}
-.pwa{position:fixed;right:max(12px,env(safe-area-inset-right));top:max(70px,calc(env(safe-area-inset-top) + 58px));z-index:3;display:none;align-items:center;gap:6px;background:rgba(10,92,255,.85);color:#fff;border:1px solid rgba(255,255,255,.5);border-radius:999px;padding:3px 10px;font-size:11px;line-height:16px;cursor:pointer;max-width:calc(100% - 24px)}
-.pwa.on{display:inline-flex}
-.pwa:hover{background:#3d95ff}
-.pwa.ios{cursor:default}
-.pwa .x{background:none;border:0;color:#fff;font-size:13px;line-height:1;padding:0 0 0 2px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -115,8 +101,6 @@ body{background:#1f7bff;display:grid;place-items:center;
  <button id="wa" type="button" class="wa" aria-label="Share on WhatsApp" title="Share on WhatsApp"><svg viewBox="0 0 24 24" width="18" height="18" style="display:block;fill:currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg></button>
  <div class="hint" id="hint">Type digits, then flip the calculator upside down.</div>
 </div>
-<button class="pwa" id="pwaInstall" type="button"></button>
-<div class="pwa ios" id="pwaIos" role="note"><span id="pwaIosT"></span><button class="x" id="pwaIosX" type="button" aria-label="Close">×</button></div>
 <script>
 const H=y=>`12,${y} 16,${y-4} 44,${y-4} 48,${y} 44,${y+4} 16,${y+4}`;
 const V=(x,a,b)=>`${x},${a} ${x+4},${a+4} ${x+4},${b-4} ${x},${b} ${x-4},${b-4} ${x-4},${a+4}`;
@@ -153,7 +137,7 @@ function fmt(n){
  return (n<0&&s!=='0'?'-':'')+s;
 }
 function press(k){
- if(music){musicKey(k);return}
+ if(musicLive()){if(stg.classList.contains('flip'))setFlip(false);musicKey(k);return}
  if(game&&k==='=')gameHit();
  if(radio&&k==='=')radioBuzz(op);
  if(err&&k!=='C'&&k!=='AC')return;
@@ -199,7 +183,7 @@ function click(k,up){
   const f=ac.createBiquadFilter();f.type='bandpass';f.frequency.value=up?2800:1800;f.Q.value=1.2;
   const g=ac.createGain();g.gain.value=up?.07:.18;
   n.connect(f);f.connect(g);g.connect(ac.destination);n.start(t);
-  if(!up&&!music){
+  if(!up&&(!music||(!musicLive()&&!/^\d$/.test(k)))){
    const fr=/^\d$/.test(k)?480+(+k)*16:k==='='?640:/^(C|AC)$/.test(k)?280:400;
    const o=ac.createOscillator(),og=ac.createGain();
    o.type='sine';o.frequency.setValueAtTime(fr,t);o.frequency.exponentialRampToValueAtTime(fr*.6,t+.06);
@@ -211,6 +195,7 @@ function click(k,up){
 
 /* ============ music mode (Casio VL-1 / ML-81 style) ============ */
 let music=false,mOct=4,mSharp=false,mRec=false,mem=[],mGen=0,mSong=0;
+const musicLive=()=>music&&!busy&&!allOn&&!game;
 const SEMI=[0,2,4,5,7,9,11],NN=['C','C.','D','D.','E','F','F.','G','G.','A','A.','B'];
 const SONGS=[
  {n:{en:'Ode to Joy',es:'Oda a la alegría'},s:[[64,1],[64,1],[65,1],[67,1],[67,1],[65,1],[64,1],[62,1],[60,1],[60,1],[62,1],[64,1],[64,1.5],[62,.5],[62,2]]},
@@ -437,7 +422,9 @@ $('tricks').onclick=()=>{buildPanel();openPanel()};
 $('mush').onclick=showMusicHelp;
 $('mus').onclick=()=>setMusic(!music);
 const D=s=>String(s).split(''),R=(a,n)=>a+Math.floor(Math.random()*n);
-function tap(k){const b=btns[k];b.classList.add('down');click(k,false);press(k);setTimeout(()=>{b.classList.remove('down');click(k,true)},110)}
+function tap(k){const b=btns[k];b.classList.add('down');click(k,false);
+ if(music&&/^[1-9]$/.test(k)){const i=+k-1;mTone(12*(mOct+1)+SEMI[i%7]+12*Math.floor(i/7),260)}
+ press(k);setTimeout(()=>{b.classList.remove('down');click(k,true)},110)}
 const SLOW=2.5;
 let readOn=false;
 function speakThen(text,fn,min){
@@ -464,7 +451,7 @@ function toggleRead(){
  applyLang();
 }
 function runTrick(x){
- if(busy)return;musicOff(true);busy=true;closePanel();
+ if(busy)return;if(music){mGen++;mSharp=false;ovr=null}busy=true;closePanel();
  const was=stg.classList.contains('flip');setFlip(false);press('AC');hint.textContent=x.say;
  if(readOn&&!x.fromAll){try{speechSynthesis.cancel()}catch(e){}}
  let i=0;
@@ -699,39 +686,6 @@ function waShare(){
 }
 $('wa').onclick=waShare;
 render();
-</script>
-<script>
-(function(){
- const T={
-  en:{inst:'⬇ Install App',ios:'Share → Add to Home Screen',x:'Close'},
-  es:{inst:'⬇ Instalar app',ios:'Compartir → Añadir a pantalla de inicio',x:'Cerrar'}
- };
- const bi=document.getElementById('pwaInstall'),ios=document.getElementById('pwaIos'),
-  iosT=document.getElementById('pwaIosT'),iosX=document.getElementById('pwaIosX');
- let deferred=null;
- const standalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
- const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
- function txt(){const t=T[lang]||T.en;bi.textContent=t.inst;iosT.textContent=t.ios;iosX.setAttribute('aria-label',t.x)}
- const _al=applyLang;
- applyLang=function(){_al.apply(this,arguments);txt()};
- txt();
- window.addEventListener('beforeinstallprompt',e=>{
-  e.preventDefault();deferred=e;if(!standalone())bi.classList.add('on');
- });
- bi.onclick=async()=>{
-  if(!deferred)return;
-  deferred.prompt();
-  try{await deferred.userChoice}catch(e){}
-  deferred=null;bi.classList.remove('on');
- };
- window.addEventListener('appinstalled',()=>{deferred=null;bi.classList.remove('on');ios.classList.remove('on')});
- let hidden=false;try{hidden=localStorage.getItem('lcdpro-ios-tip')==='1'}catch(e){}
- if(isIOS&&!standalone()&&!hidden)ios.classList.add('on');
- iosX.onclick=()=>{ios.classList.remove('on');try{localStorage.setItem('lcdpro-ios-tip','1')}catch(e){}};
- if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>{navigator.serviceWorker.register('./lcdpro-sw.js').catch(()=>{})});
- }
-})();
 </script>
 </body>
 </html>
